@@ -7,13 +7,13 @@
     <x>0</x>
     <y>0</y>
     <width>279</width>
-    <height>259</height>
+    <height>288</height>
    </rect>
   </property>
   <property name="maximumSize">
    <size>
     <width>16777215</width>
-    <height>300</height>
+    <height>340</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -44,61 +44,88 @@
    <item row="3" column="1">
     <widget class="QComboBox" name="comboBox_2"/>
    </item>
-   <item row="10" column="1">
+   <item row="12" column="1">
     <widget class="QDialogButtonBox" name="buttonBox">
     </widget>
    </item>
    <item row="4" column="0">
+    <widget class="QLabel" name="label_frame_rate">
+     <property name="text">
+      <string>Frame rate</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="1">
+    <widget class="QComboBox" name="comboBox_frame_rate"/>
+   </item>
+   <item row="5" column="0">
     <widget class="QLabel" name="label_3">
      <property name="text">
       <string>Format</string>
      </property>
     </widget>
    </item>
-   <item row="4" column="1">
+   <item row="5" column="1">
     <widget class="QComboBox" name="comboBox_3"/>
    </item>
-   <item row="9" column="1">
+   <item row="11" column="1">
     <widget class="QCheckBox" name="checkBoxAudio">
      <property name="text">
       <string>Audio support</string>
      </property>
     </widget>
    </item>
-   <item row="5" column="0">
+   <item row="6" column="0">
     <widget class="QLabel" name="label_4">
      <property name="text">
       <string>Audio IN</string>
      </property>
     </widget>
    </item>
-   <item row="5" column="1">
+   <item row="6" column="1">
     <widget class="QComboBox" name="comboBox_4">
      <property name="mouseTracking">
       <bool>false</bool>
      </property>
     </widget>
    </item>
-   <item row="6" column="0">
+   <item row="7" column="0">
     <widget class="QLabel" name="label_5">
      <property name="text">
       <string>Audio OUT</string>
      </property>
     </widget>
    </item>
-   <item row="8" column="1">
+   <item row="10" column="1">
     <widget class="QCheckBox" name="checkBoxAutoConnect">
      <property name="text">
       <string>Auto Connect on startup</string>
      </property>
     </widget>
    </item>
-   <item row="6" column="1">
+   <item row="7" column="1">
     <widget class="QComboBox" name="comboBox_5">
      <property name="mouseTracking">
       <bool>false</bool>
      </property>
     </widget>
+   </item>
+   <item row="9" column="0" colspan="2">
+    <widget class="QLabel" name="label_7">
+     <property name="text">
+      <string>* Audio routing is available while the video device is connected</string>
+     </property>
+    </widget>
+   </item>
+   <item row="8" column="0">
+    <widget class="QLabel" name="label_audio_buffer">
+     <property name="text">
+      <string>Audio buffer</string>
+     </property>
+    </widget>
+   </item>
+   <item row="8" column="1">
+    <widget class="QComboBox" name="comboBox_audio_buffer"/>
    </item>
   </layout>
  </widget>

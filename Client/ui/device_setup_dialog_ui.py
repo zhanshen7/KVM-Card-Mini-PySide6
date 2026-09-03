@@ -23,8 +23,8 @@ class Ui_Dialog(object):
     def setupUi(self, Dialog):
         if not Dialog.objectName():
             Dialog.setObjectName(u"Dialog")
-        Dialog.resize(279, 259)
-        Dialog.setMaximumSize(QSize(16777215, 300))
+        Dialog.resize(279, 288)
+        Dialog.setMaximumSize(QSize(16777215, 340))
         self.formLayout = QFormLayout(Dialog)
         self.formLayout.setObjectName(u"formLayout")
         self.label = QLabel(Dialog)
@@ -51,54 +51,74 @@ class Ui_Dialog(object):
         self.buttonBox = QDialogButtonBox(Dialog)
         self.buttonBox.setObjectName(u"buttonBox")
 
-        self.formLayout.setWidget(10, QFormLayout.ItemRole.FieldRole, self.buttonBox)
+        self.formLayout.setWidget(12, QFormLayout.ItemRole.FieldRole, self.buttonBox)
+
+        self.label_frame_rate = QLabel(Dialog)
+        self.label_frame_rate.setObjectName(u"label_frame_rate")
+
+        self.formLayout.setWidget(4, QFormLayout.ItemRole.LabelRole, self.label_frame_rate)
+
+        self.comboBox_frame_rate = QComboBox(Dialog)
+        self.comboBox_frame_rate.setObjectName(u"comboBox_frame_rate")
+
+        self.formLayout.setWidget(4, QFormLayout.ItemRole.FieldRole, self.comboBox_frame_rate)
 
         self.label_3 = QLabel(Dialog)
         self.label_3.setObjectName(u"label_3")
 
-        self.formLayout.setWidget(4, QFormLayout.ItemRole.LabelRole, self.label_3)
+        self.formLayout.setWidget(5, QFormLayout.ItemRole.LabelRole, self.label_3)
 
         self.comboBox_3 = QComboBox(Dialog)
         self.comboBox_3.setObjectName(u"comboBox_3")
 
-        self.formLayout.setWidget(4, QFormLayout.ItemRole.FieldRole, self.comboBox_3)
+        self.formLayout.setWidget(5, QFormLayout.ItemRole.FieldRole, self.comboBox_3)
 
         self.checkBoxAudio = QCheckBox(Dialog)
         self.checkBoxAudio.setObjectName(u"checkBoxAudio")
 
-        self.formLayout.setWidget(9, QFormLayout.ItemRole.FieldRole, self.checkBoxAudio)
+        self.formLayout.setWidget(11, QFormLayout.ItemRole.FieldRole, self.checkBoxAudio)
 
         self.label_4 = QLabel(Dialog)
         self.label_4.setObjectName(u"label_4")
 
-        self.formLayout.setWidget(5, QFormLayout.ItemRole.LabelRole, self.label_4)
+        self.formLayout.setWidget(6, QFormLayout.ItemRole.LabelRole, self.label_4)
 
         self.comboBox_4 = QComboBox(Dialog)
         self.comboBox_4.setObjectName(u"comboBox_4")
         self.comboBox_4.setMouseTracking(False)
 
-        self.formLayout.setWidget(5, QFormLayout.ItemRole.FieldRole, self.comboBox_4)
+        self.formLayout.setWidget(6, QFormLayout.ItemRole.FieldRole, self.comboBox_4)
 
         self.label_5 = QLabel(Dialog)
         self.label_5.setObjectName(u"label_5")
 
-        self.formLayout.setWidget(6, QFormLayout.ItemRole.LabelRole, self.label_5)
+        self.formLayout.setWidget(7, QFormLayout.ItemRole.LabelRole, self.label_5)
 
         self.checkBoxAutoConnect = QCheckBox(Dialog)
         self.checkBoxAutoConnect.setObjectName(u"checkBoxAutoConnect")
 
-        self.formLayout.setWidget(8, QFormLayout.ItemRole.FieldRole, self.checkBoxAutoConnect)
+        self.formLayout.setWidget(10, QFormLayout.ItemRole.FieldRole, self.checkBoxAutoConnect)
 
         self.comboBox_5 = QComboBox(Dialog)
         self.comboBox_5.setObjectName(u"comboBox_5")
         self.comboBox_5.setMouseTracking(False)
 
-        self.formLayout.setWidget(6, QFormLayout.ItemRole.FieldRole, self.comboBox_5)
+        self.formLayout.setWidget(7, QFormLayout.ItemRole.FieldRole, self.comboBox_5)
 
         self.label_7 = QLabel(Dialog)
         self.label_7.setObjectName(u"label_7")
 
-        self.formLayout.setWidget(7, QFormLayout.ItemRole.SpanningRole, self.label_7)
+        self.formLayout.setWidget(9, QFormLayout.ItemRole.SpanningRole, self.label_7)
+
+        self.label_audio_buffer = QLabel(Dialog)
+        self.label_audio_buffer.setObjectName(u"label_audio_buffer")
+
+        self.formLayout.setWidget(8, QFormLayout.ItemRole.LabelRole, self.label_audio_buffer)
+
+        self.comboBox_audio_buffer = QComboBox(Dialog)
+        self.comboBox_audio_buffer.setObjectName(u"comboBox_audio_buffer")
+
+        self.formLayout.setWidget(8, QFormLayout.ItemRole.FieldRole, self.comboBox_audio_buffer)
 
 
         self.retranslateUi(Dialog)
@@ -112,10 +132,13 @@ class Ui_Dialog(object):
         Dialog.setWindowTitle(QCoreApplication.translate("Dialog", u"Device setup", None))
         self.label.setText(QCoreApplication.translate("Dialog", u"Device", None))
         self.label_2.setText(QCoreApplication.translate("Dialog", u"Resolution", None))
+        self.label_frame_rate.setText(QCoreApplication.translate("Dialog", u"Frame rate", None))
         self.label_3.setText(QCoreApplication.translate("Dialog", u"Format", None))
         self.checkBoxAudio.setText(QCoreApplication.translate("Dialog", u"Audio support", None))
         self.label_4.setText(QCoreApplication.translate("Dialog", u"Audio IN", None))
         self.label_5.setText(QCoreApplication.translate("Dialog", u"Audio OUT", None))
         self.checkBoxAutoConnect.setText(QCoreApplication.translate("Dialog", u"Auto Connect on startup", None))
+        self.label_7.setText(QCoreApplication.translate("Dialog", u"* Audio routing is available while the video device is connected", None))
+        self.label_audio_buffer.setText(QCoreApplication.translate("Dialog", u"Audio buffer", None))
     # retranslateUi
 

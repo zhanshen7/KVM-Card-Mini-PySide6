@@ -22,12 +22,11 @@ from PySide6.QtMultimedia import (
     QCamera,
     QMediaCaptureSession,
     QMediaDevices,
-    QVideoFrame,
-    QVideoSink,
 )
 from PySide6.QtMultimediaWidgets import QVideoWidget
 from PySide6.QtWidgets import (
     QApplication,
+    QCheckBox,
     QDialog,
     QDialogButtonBox,
     QLabel,
@@ -124,11 +123,9 @@ class MyMainWindow(QMainWindow, main_ui.Ui_MainWindow):
         super().__init__(parent)
         self.setupUi(self)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
         self.camera = None
         self.capture_session = None
-        self.video_sink = None
         self.camera_opened = False
         self.camera_info = None
         self.audio_source = None
@@ -156,6 +153,8 @@ class MyMainWindow(QMainWindow, main_ui.Ui_MainWindow):
             self.config = self.configfile["config"]
             self.video_config = self.configfile["video_config"]
             self.audio_config = self.configfile["audio_config"]
+            self.config.setdefault("mouse_report_freq", 125)
+            self.audio_config.setdefault("buffer_ms", 40)
             self.relative_mouse_speed = self.config["relative_mouse_speed"]
             if self.config["mouse_report_freq"] != 0:
                 self.mouse_report_interval = 1000 / self.config["mouse_report_freq"]
@@ -200,6 +199,9 @@ class MyMainWindow(QMainWindow, main_ui.Ui_MainWindow):
         self.device_setup_dialog.setWindowIcon(load_icon("import"))
 
         # 状态栏图标
+        self.statusbar_lock_btn = MyPushButton()
+        self.statusbar_lock_btn.setPixmap(load_pixmap("lock"))
+        self.statusbar_lock_btn.setToolTip(self.tr("Lock remote screen"))
         self.statusbar_screenshot_btn = MyPushButton()
         self.statusbar_screenshot_btn.setPixmap(load_pixmap("capture"))
         self.statusbar_screenshot_btn.setToolTip(self.tr("Screenshot"))
@@ -217,6 +219,7 @@ class MyMainWindow(QMainWindow, main_ui.Ui_MainWindow):
         self.statusbar_fullscreen_btn.setToolTip(self.tr("Fullscreen"))
 
         self.statusBar().setStyleSheet("padding: 0px;")
+        self.statusBar().addPermanentWidget(self.statusbar_lock_btn)
         self.statusBar().addPermanentWidget(self.statusbar_screenshot_btn)
         self.statusBar().addPermanentWidget(self.statusbar_btn5)
         self.statusBar().addPermanentWidget(self.statusbar_icon2)
@@ -224,6 +227,7 @@ class MyMainWindow(QMainWindow, main_ui.Ui_MainWindow):
         self.statusBar().addPermanentWidget(self.statusbar_icon1)
         self.statusBar().addPermanentWidget(self.statusbar_fullscreen_btn)
 
+        self.statusbar_lock_btn.clicked.connect(self.lock_remote_screen)
         self.statusbar_screenshot_btn.clicked.connect(self.capture_screenshot)
         self.statusbar_btn5.clicked.connect(self.system_hook_func)
         self.statusbar_icon1.clicked.connect(self.device_config)
@@ -265,10 +269,6 @@ class MyMainWindow(QMainWindow, main_ui.Ui_MainWindow):
             video_surface.setMouseTracking(True)
         self.videoWidget.hide()
 
-        s_format = QSurfaceFormat.defaultFormat()
-        s_format.setSwapInterval(0)
-        QSurfaceFormat.setDefaultFormat(s_format)
-
         self.disconnect_label = QLabel()
         self.disconnect_label.setPixmap(load_pixmap("disconnected"))
         self.disconnect_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -291,6 +291,12 @@ class MyMainWindow(QMainWindow, main_ui.Ui_MainWindow):
 
         self.device_setup_dialog.comboBox.currentIndexChanged.connect(
             self.update_device_info
+        )
+        self.device_setup_dialog.comboBox_2.currentTextChanged.connect(
+            self.update_pixel_formats
+        )
+        self.device_setup_dialog.comboBox_3.currentTextChanged.connect(
+            self.update_frame_rates
         )
 
         self.action_fullscreen.triggered.connect(self.fullscreen_func)
@@ -317,6 +323,7 @@ class MyMainWindow(QMainWindow, main_ui.Ui_MainWindow):
         self.audio_checkbox_switch()
 
         # 设置聚焦方式
+        self.statusbar_lock_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.statusbar_screenshot_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.statusbar_btn5.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.statusbar_icon1.setFocusPolicy(Qt.FocusPolicy.NoFocus)
@@ -431,20 +438,24 @@ class MyMainWindow(QMainWindow, main_ui.Ui_MainWindow):
         if self.device_setup_dialog.checkBoxAudio.isChecked():
             self.device_setup_dialog.comboBox_4.show()
             self.device_setup_dialog.comboBox_5.show()
+            self.device_setup_dialog.comboBox_audio_buffer.show()
             self.device_setup_dialog.label_4.show()
             self.device_setup_dialog.label_5.show()
+            self.device_setup_dialog.label_audio_buffer.show()
             self.device_setup_dialog.label_7.show()
-            self.device_setup_dialog.setMaximumHeight(270)
-            self.device_setup_dialog.setMinimumHeight(270)
+            self.device_setup_dialog.setMaximumHeight(330)
+            self.device_setup_dialog.setMinimumHeight(330)
             self.update_audio_devices()
         else:
             self.device_setup_dialog.comboBox_4.hide()
             self.device_setup_dialog.comboBox_5.hide()
+            self.device_setup_dialog.comboBox_audio_buffer.hide()
             self.device_setup_dialog.label_4.hide()
             self.device_setup_dialog.label_5.hide()
+            self.device_setup_dialog.label_audio_buffer.hide()
             self.device_setup_dialog.label_7.hide()
-            self.device_setup_dialog.setMaximumHeight(200)
-            self.device_setup_dialog.setMinimumHeight(200)
+            self.device_setup_dialog.setMaximumHeight(230)
+            self.device_setup_dialog.setMinimumHeight(230)
         self.device_setup_dialog.adjustSize()
 
     def update_audio_devices(self):
@@ -474,6 +485,19 @@ class MyMainWindow(QMainWindow, main_ui.Ui_MainWindow):
             )
         else:
             self.device_setup_dialog.comboBox_5.setCurrentIndex(0)
+        self.update_audio_buffer_options()
+
+    def update_audio_buffer_options(self):
+        buffer_ms = int(self.audio_config.get("buffer_ms", 40))
+        combo_box = self.device_setup_dialog.comboBox_audio_buffer
+        combo_box.blockSignals(True)
+        combo_box.clear()
+        for option in (20, 40, 60, 120):
+            combo_box.addItem(f"{option} ms", option)
+        if combo_box.findData(buffer_ms) < 0:
+            combo_box.addItem(f"{buffer_ms} ms", buffer_ms)
+        combo_box.setCurrentIndex(combo_box.findData(buffer_ms))
+        combo_box.blockSignals(False)
 
     # 弹出采集卡设备设置窗口，并打开采集卡设备
     def device_config(self):
@@ -498,11 +522,14 @@ class MyMainWindow(QMainWindow, main_ui.Ui_MainWindow):
             self.device_setup_dialog.comboBox_3.setCurrentText(
                 self.video_config["format"]
             )
+            self.update_frame_rates()
+            self._select_frame_rate(self.video_config.get("frame_rate"))
         else:
             self.device_setup_dialog.comboBox.setCurrentIndex(0)
             self.update_device_info()
             self.device_setup_dialog.comboBox_2.setCurrentIndex(0)
             self.device_setup_dialog.comboBox_3.setCurrentIndex(0)
+            self.update_frame_rates()
             try:
                 self.video_config["resolution_X"] = (
                     self.device_setup_dialog.comboBox_2.currentText().split("x")[0]
@@ -515,6 +542,9 @@ class MyMainWindow(QMainWindow, main_ui.Ui_MainWindow):
                 self.video_config["resolution_Y"] = 0
             self.video_config["format"] = (
                 self.device_setup_dialog.comboBox_3.currentText()
+            )
+            self.video_config["frame_rate"] = (
+                self.device_setup_dialog.comboBox_frame_rate.currentData()
             )
 
         if self.device_setup_dialog.checkBoxAudio.isChecked():
@@ -544,6 +574,9 @@ class MyMainWindow(QMainWindow, main_ui.Ui_MainWindow):
             self.video_config["format"] = (
                 self.device_setup_dialog.comboBox_3.currentText()
             )
+            self.video_config["frame_rate"] = float(
+                self.device_setup_dialog.comboBox_frame_rate.currentData()
+            )
 
             if self.device_setup_dialog.checkBoxAudio.isChecked():
                 self.audio_config["audio_device_in"] = (
@@ -552,7 +585,10 @@ class MyMainWindow(QMainWindow, main_ui.Ui_MainWindow):
                 self.audio_config["audio_device_out"] = (
                     self.device_setup_dialog.comboBox_5.currentText()
                 )
-        except (IndexError, ValueError):
+                self.audio_config["buffer_ms"] = int(
+                    self.device_setup_dialog.comboBox_audio_buffer.currentData()
+                )
+        except (IndexError, TypeError, ValueError):
             self.video_alert(self.tr("Selected invalid device"))
             return
         logger.debug(self.video_config)
@@ -570,8 +606,10 @@ class MyMainWindow(QMainWindow, main_ui.Ui_MainWindow):
 
     # 获取采集卡分辨率
     def update_device_info(self):
+        previous_resolution = self.device_setup_dialog.comboBox_2.currentText()
         self.device_setup_dialog.comboBox_2.clear()
         self.device_setup_dialog.comboBox_3.clear()
+        self.device_setup_dialog.comboBox_frame_rate.clear()
         cameras = QMediaDevices.videoInputs()
         if not self.camera_list_inited:
             for camera in cameras:
@@ -591,16 +629,80 @@ class MyMainWindow(QMainWindow, main_ui.Ui_MainWindow):
                 self.camera_info = None
                 return
         res_list = []
-        fmt_list = []
         for i in self.camera_info.videoFormats():
             resolutions_str = f"{i.resolution().width()}x{i.resolution().height()}"
             if resolutions_str not in res_list:
                 res_list.append(resolutions_str)
                 self.device_setup_dialog.comboBox_2.addItem(resolutions_str)
-            fmt_str = i.pixelFormat().name.split("_")[1]
-            if fmt_str not in fmt_list:
-                fmt_list.append(fmt_str)
-                self.device_setup_dialog.comboBox_3.addItem(fmt_str)
+        if previous_resolution in res_list:
+            self.device_setup_dialog.comboBox_2.setCurrentText(previous_resolution)
+        self.update_pixel_formats()
+
+    def update_pixel_formats(self):
+        if self.camera_info is None:
+            return
+        try:
+            width, height = map(
+                int, self.device_setup_dialog.comboBox_2.currentText().split("x")
+            )
+        except ValueError:
+            return
+        previous_format = self.device_setup_dialog.comboBox_3.currentText()
+        formats = []
+        for camera_format in self.camera_info.videoFormats():
+            if (
+                camera_format.resolution().width() == width
+                and camera_format.resolution().height() == height
+            ):
+                pixel_format = camera_format.pixelFormat().name.split("_")[1]
+                if pixel_format not in formats:
+                    formats.append(pixel_format)
+        self.device_setup_dialog.comboBox_3.blockSignals(True)
+        self.device_setup_dialog.comboBox_3.clear()
+        self.device_setup_dialog.comboBox_3.addItems(formats)
+        if previous_format in formats:
+            self.device_setup_dialog.comboBox_3.setCurrentText(previous_format)
+        self.device_setup_dialog.comboBox_3.blockSignals(False)
+        self.update_frame_rates()
+
+    def update_frame_rates(self):
+        if self.camera_info is None:
+            return
+        try:
+            width, height = map(
+                int, self.device_setup_dialog.comboBox_2.currentText().split("x")
+            )
+        except ValueError:
+            return
+        pixel_format = self.device_setup_dialog.comboBox_3.currentText()
+        frame_rates = sorted(
+            {
+                camera_format.maxFrameRate()
+                for camera_format in self.camera_info.videoFormats()
+                if camera_format.resolution().width() == width
+                and camera_format.resolution().height() == height
+                and camera_format.pixelFormat().name.split("_")[1] == pixel_format
+            },
+            reverse=True,
+        )
+        self.device_setup_dialog.comboBox_frame_rate.blockSignals(True)
+        self.device_setup_dialog.comboBox_frame_rate.clear()
+        for frame_rate in frame_rates:
+            self.device_setup_dialog.comboBox_frame_rate.addItem(
+                f"{frame_rate:.1f} FPS", frame_rate
+            )
+        self.device_setup_dialog.comboBox_frame_rate.blockSignals(False)
+
+    def _select_frame_rate(self, frame_rate):
+        if frame_rate is None:
+            return
+        frame_rate_index = self.device_setup_dialog.comboBox_frame_rate.findData(
+            float(frame_rate)
+        )
+        if frame_rate_index >= 0:
+            self.device_setup_dialog.comboBox_frame_rate.setCurrentIndex(
+                frame_rate_index
+            )
 
     def _show_disconnected(self):
         self.takeCentralWidget()
@@ -626,17 +728,22 @@ class MyMainWindow(QMainWindow, main_ui.Ui_MainWindow):
         QTimer.singleShot(0, self._teardown_media)
         QMessageBox.critical(self, self.tr("Device Error"), error_s)
 
-    def frame_changed(self, frame: QVideoFrame):
-        self.videoWidget.videoSink().setVideoFrame(frame)
-        self.videoWidget.update()
-        self.videoWidget.repaint()
-
     def capture_screenshot(self):
         self._local_screenshot_trigger = True
         win32api.keybd_event(win32con.VK_SNAPSHOT, 0, 0, 0)
         win32api.keybd_event(win32con.VK_SNAPSHOT, 0, win32con.KEYEVENTF_KEYUP, 0)
         QTimer.singleShot(100, self._clear_local_screenshot_trigger)
         self.statusBar().showMessage(self.tr("Local Print Screen triggered"))
+
+    def lock_remote_screen(self):
+        if not self.device_connected:
+            self.statusBar().showMessage(self.tr("Keyboard Mouse connect error"))
+            return
+        self.update_kb_hid(0xE3, True)
+        self.update_kb_hid(0x0F, True)
+        self.update_kb_hid(0x0F, False)
+        self.update_kb_hid(0xE3, False)
+        self.statusBar().showMessage(self.tr("Remote screen locked"))
 
     def _clear_local_screenshot_trigger(self):
         self._local_screenshot_trigger = False
@@ -698,12 +805,12 @@ class MyMainWindow(QMainWindow, main_ui.Ui_MainWindow):
         audio_format = self.audio_format
         if audio_format is None:
             return False
-        buffer_ms = 120
+        buffer_ms = max(20, min(int(self.audio_config.get("buffer_ms", 40)), 120))
         self.audio_frame_size = audio_format.bytesPerFrame()
         buffer_size = (
             audio_format.sampleRate() * self.audio_frame_size * buffer_ms // 1000
         )
-        self.audio_max_pending = buffer_size * 4
+        self.audio_max_pending = buffer_size * 2
         self.audio_source = QAudioSource(self.audio_in_device, audio_format, self)
         self.audio_sink = QAudioSink(self.audio_out_device, audio_format, self)
         self.audio_source.setBufferSize(buffer_size)
@@ -745,16 +852,12 @@ class MyMainWindow(QMainWindow, main_ui.Ui_MainWindow):
 
         camera = self.camera
         capture_session = self.capture_session
-        video_sink = self.video_sink
         self.camera = None
         self.capture_session = None
-        self.video_sink = None
         self.camera_opened = False
 
         if capture_session is not None:
             capture_session.deleteLater()
-        if video_sink is not None:
-            video_sink.deleteLater()
         if camera is not None:
             camera.stop()
             camera.deleteLater()
@@ -767,20 +870,32 @@ class MyMainWindow(QMainWindow, main_ui.Ui_MainWindow):
                 self.video_alert(self.tr("Target video device not found"))
                 return False
         self.camera = QCamera(self.camera_info)
-        for i in self.camera_info.videoFormats():
-            if (
-                i.resolution().width() == self.video_config["resolution_X"]
-                and i.resolution().height() == self.video_config["resolution_Y"]
-                and i.pixelFormat().name.split("_")[1] == self.video_config["format"]
-            ):
-                self.camera.setCameraFormat(i)
-                break
-        else:
+        matching_formats = [
+            camera_format
+            for camera_format in self.camera_info.videoFormats()
+            if camera_format.resolution().width() == self.video_config["resolution_X"]
+            and camera_format.resolution().height() == self.video_config["resolution_Y"]
+            and camera_format.pixelFormat().name.split("_")[1]
+            == self.video_config["format"]
+        ]
+        if not matching_formats:
             self._teardown_media()
             self.video_alert(
                 self.tr("Unsupported combination of resolution and format")
             )
             return False
+        selected_frame_rate = self.video_config.get("frame_rate")
+        if selected_frame_rate is not None:
+            matching_formats = [
+                camera_format
+                for camera_format in matching_formats
+                if abs(camera_format.maxFrameRate() - float(selected_frame_rate)) < 0.01
+            ] or matching_formats
+        self.camera.setCameraFormat(
+            max(
+                matching_formats, key=lambda camera_format: camera_format.maxFrameRate()
+            )
+        )
 
         if self.device_setup_dialog.checkBoxAudio.isChecked():
             in_devices = QMediaDevices.audioInputs()
@@ -828,10 +943,7 @@ class MyMainWindow(QMainWindow, main_ui.Ui_MainWindow):
 
         self.capture_session = QMediaCaptureSession()
         self.capture_session.setCamera(self.camera)
-        self.video_sink = QVideoSink()
-        self.capture_session.setVideoSink(self.video_sink)
-        # self.capture_session.setVideoOutput(self.videoWidget)
-        self.video_sink.videoFrameChanged.connect(self.frame_changed)
+        self.capture_session.setVideoOutput(self.videoWidget)
 
         if self.device_setup_dialog.checkBoxAudio.isChecked():
             if not self._start_direct_audio():
@@ -1256,17 +1368,19 @@ class MyMainWindow(QMainWindow, main_ui.Ui_MainWindow):
     def mouseMoveEvent(self, event):
         p = event.position().toPoint()
         x, y = p.x(), p.y()
+        in_menu_bar_hotspot = False
         in_statusbar_hotspot = False
         if self.status["fullscreen"]:
-            statusbar_hotspot_width = 100
-            statusbar_hotspot_height = 50
+            hotspot_width = 200
+            hotspot_height = 60
+            in_menu_bar_hotspot = x < hotspot_width and y < hotspot_height
             in_statusbar_hotspot = (
-                x >= self.width() - statusbar_hotspot_width
-                and y >= self.height() - statusbar_hotspot_height
+                x >= self.width() - hotspot_width
+                and y >= self.height() - hotspot_height
             )
-            if (y < 2 and x < 2) or in_statusbar_hotspot:
+            if in_menu_bar_hotspot or in_statusbar_hotspot:
                 if (
-                    (y < 2 and x < 2)
+                    in_menu_bar_hotspot
                     and self.menuBar().isHidden()
                     and not self.mouse_action_timer.isActive()
                 ):
@@ -1289,7 +1403,7 @@ class MyMainWindow(QMainWindow, main_ui.Ui_MainWindow):
         if not (self.status["mouse_capture"]):
             self.setCursor(Qt.CursorShape.ArrowCursor)
             return
-        if in_statusbar_hotspot:
+        if in_menu_bar_hotspot or in_statusbar_hotspot:
             self.setCursor(Qt.CursorShape.ArrowCursor)
             self._last_mouse_pos = None
             return
@@ -1328,9 +1442,6 @@ class MyMainWindow(QMainWindow, main_ui.Ui_MainWindow):
             y_hid = (y - y_diff / 2 - y_pos) / (height - y_diff)
             x_hid = max(min(x_hid, 1), 0)
             y_hid = max(min(y_hid, 1), 0)
-            self.statusBar().showMessage(
-                f"X={x_hid * x_res:.0f}, Y={y_hid * y_res:.0f}"
-            )
             x_hid = int(x_hid * 0x7FFF)
             y_hid = int(y_hid * 0x7FFF)
             mouse_buffer[3] = x_hid & 0xFF
@@ -1359,6 +1470,12 @@ class MyMainWindow(QMainWindow, main_ui.Ui_MainWindow):
             else:
                 self._last_mouse_pos = middle_pos
                 QCursor.setPos(middle_pos)
+
+    def leaveEvent(self, event):
+        if getattr(self, "status", {}).get("fullscreen"):
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+            self._last_mouse_pos = None
+        super().leaveEvent(event)
 
     def mouse_report_timeout(self):
         if self._new_mouse_report == 1:
@@ -1498,6 +1615,28 @@ class MyMainWindow(QMainWindow, main_ui.Ui_MainWindow):
         self.update_kb(scancode, False)
 
     def closeEvent(self, event):
+        if self.config.get("confirm_before_close", True):
+            close_dialog = QMessageBox(self)
+            close_dialog.setIcon(QMessageBox.Icon.Question)
+            close_dialog.setWindowTitle(self.tr("Exit"))
+            close_dialog.setText(self.tr("Are you sure you want to close the window?"))
+            close_dialog.setStandardButtons(
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            close_dialog.setDefaultButton(QMessageBox.StandardButton.No)
+            do_not_ask_again = QCheckBox(self.tr("Don't ask again"), close_dialog)
+            close_dialog.setCheckBox(do_not_ask_again)
+            if close_dialog.exec() != QMessageBox.StandardButton.Yes:
+                event.ignore()
+                return
+            if do_not_ask_again.isChecked():
+                self.config["confirm_before_close"] = False
+                try:
+                    self.save_config()
+                except (OSError, yaml.YAMLError) as error:
+                    logger.error(
+                        f"Unable to save close confirmation preference: {error}"
+                    )
         self.mouse_action_timer.stop()
         self.mouse_scroll_timer.stop()
         self.check_device_timer.stop()
@@ -1548,6 +1687,9 @@ def main():
         "--style",
         "Windows",
     ]  # or "Fusion" ?
+    surface_format = QSurfaceFormat.defaultFormat()
+    surface_format.setSwapInterval(0)
+    QSurfaceFormat.setDefaultFormat(surface_format)
     app = QApplication(argv)
     translator = QTranslator(app)
     if translation and translator.load(os.path.join(PATH, "trans_cn.qm")):

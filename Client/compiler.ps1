@@ -103,8 +103,12 @@ try {
     }
 
     New-Item -ItemType Directory -Force -Path $releaseDir | Out-Null
-    Move-Item -LiteralPath (Join-Path $outputDir "Mini-KVM.exe") -Destination (Join-Path $releaseDir "Mini-KVM.exe") -Force
-    Write-BuildOutput "Build succeeded: $(Join-Path $releaseDir 'Mini-KVM.exe')"
+    $releaseFile = Join-Path $releaseDir "Mini-KVM.exe"
+    if (Test-Path -LiteralPath $releaseFile) {
+        Remove-Item -LiteralPath $releaseFile -Force
+    }
+    Move-Item -LiteralPath (Join-Path $outputDir "Mini-KVM.exe") -Destination $releaseFile
+    Write-BuildOutput "Build succeeded: $releaseFile"
 }
 catch {
     Write-BuildOutput "ERROR: $($_.Exception.Message)"

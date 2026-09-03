@@ -1,5 +1,11 @@
-pyside6-lupdate.exe .\main.py .\ui\main.ui .\ui\device_setup_dialog.ui .\ui\indicator.ui .\ui\numboard.ui .\ui\paste_board.ui .\ui\shortcut_key.ui .\ui\usb_switch.ui -ts trans_cn.ts
+$ErrorActionPreference = "Stop"
 
-pyside6-linguist .\trans_cn.ts
-
-pyside6-lrelease .\trans_cn.ts -qm .\trans_cn.qm
+Push-Location $PSScriptRoot
+try {
+    & pyside6-lupdate.exe -no-obsolete .\main.py .\ui\main.ui .\ui\device_setup_dialog.ui -ts .\trans_cn.ts
+    & pyside6-linguist.exe .\trans_cn.ts
+    & pyside6-lrelease.exe .\trans_cn.ts -qm .\trans_cn.qm
+}
+finally {
+    Pop-Location
+}
